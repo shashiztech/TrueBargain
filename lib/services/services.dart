@@ -11,3 +11,4 @@ export 'product_grouping_service.dart';
 export 'ai_recommendation_service.dart';
 export 'enhanced_comparison_service.dart';
 export 'advanced_services.dart';
+export 'rapid_api_service.dart';

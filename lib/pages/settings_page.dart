@@ -180,6 +180,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
   List<Widget> _buildApiKeyFields(SettingsProvider provider) {
     final keys = [
+      ('TB_RAPIDAPI_KEY', 'RapidAPI Key (rapidapi.com)'),
       ('TB_AMAZON_API_KEY', 'Amazon API Key'),
       ('TB_FLIPKART_API_KEY', 'Flipkart API Key'),
       ('TB_WALMART_API_KEY', 'Walmart API Key'),

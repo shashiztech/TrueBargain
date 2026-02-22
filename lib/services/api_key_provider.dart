@@ -33,6 +33,7 @@ class ApiKeyProvider {
     'TB_SWIGGY_API_KEY': 'swiggyApiKey',
     'TB_BLINKIT_API_KEY': 'blinkitApiKey',
     'TB_ZEPTO_API_KEY': 'zeptoApiKey',
+    'TB_RAPIDAPI_KEY': 'rapidApiKey',
   };
 
   /// Populates ApiConfiguration:
@@ -150,6 +151,8 @@ class ApiKeyProvider {
         config.blinkitApiKey = value;
       case 'zeptoApiKey':
         config.zeptoApiKey = value;
+      case 'rapidApiKey':
+        config.rapidApiKey = value;
     }
   }
 }

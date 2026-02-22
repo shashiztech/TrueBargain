@@ -53,6 +53,12 @@ void main() async {
       RealEcommerceService(httpClient, apiConfig, connectivityService);
   final ecommerceSearchService = EcommerceSearchService(
       httpClient, productDataService, realEcommerceService, apiConfig);
+
+  // RapidAPI service — real e-commerce product search
+  final rapidApiService =
+      RapidApiService(httpClient, apiConfig, connectivityService);
+  ecommerceSearchService.setRapidApiService(rapidApiService);
+
   final productGroupingService = ProductGroupingService();
   final analyticsService = AnalyticsService(database);
   final aiRecommendationService =
@@ -79,6 +85,7 @@ void main() async {
         Provider<ProductComparisonService>.value(
             value: productComparisonService),
         Provider<RealEcommerceService>.value(value: realEcommerceService),
+        Provider<RapidApiService>.value(value: rapidApiService),
         Provider<EcommerceSearchService>.value(value: ecommerceSearchService),
         Provider<ProductGroupingService>.value(value: productGroupingService),
         Provider<AnalyticsService>.value(value: analyticsService),

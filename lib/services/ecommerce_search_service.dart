@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import '../models/models.dart';
 import 'real_ecommerce_service.dart';
 import 'product_data_service.dart';
+import 'rapid_api_service.dart';
 
 /// Multi-platform search orchestration
 class EcommerceSearchService {
@@ -10,6 +11,7 @@ class EcommerceSearchService {
   final ProductDataService _productDataService;
   final RealEcommerceService _realEcommerceService;
   final ApiConfiguration _apiConfig;
+  RapidApiService? _rapidApiService;
 
   EcommerceSearchService(
     this._httpClient,
@@ -17,6 +19,11 @@ class EcommerceSearchService {
     this._realEcommerceService,
     this._apiConfig,
   );
+
+  /// Attach RapidAPI service for real product data
+  void setRapidApiService(RapidApiService service) {
+    _rapidApiService = service;
+  }
 
   /// Search all platforms in parallel
   Future<SearchResult> searchAllPlatforms(SearchRequest request) async {
@@ -57,6 +64,11 @@ class EcommerceSearchService {
     if (request.source == EcommerceSource.all ||
         request.source == EcommerceSource.ebay) {
       futures.add(_searchPlatform('eBay', request, EcommerceSource.ebay));
+    }
+
+    // RapidAPI aggregated search (Google Shopping + real Amazon/Walmart/eBay)
+    if (_rapidApiService != null && _rapidApiService!.isAvailable) {
+      futures.add(_searchRapidApi(request));
     }
 
     final results = await Future.wait(futures);
@@ -127,6 +139,19 @@ class EcommerceSearchService {
         default:
           return [];
       }
+    } catch (_) {
+      return [];
+    }
+  }
+
+  /// Search via RapidAPI aggregated endpoints
+  Future<List<Product>> _searchRapidApi(SearchRequest request) async {
+    try {
+      return await _rapidApiService!.searchAllEcommerce(
+        request.query,
+        maxResults: request.maxResults ~/ 3,
+        category: request.category,
+      );
     } catch (_) {
       return [];
     }

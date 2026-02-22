@@ -1,5 +1,10 @@
 {
   "parameters": {
+    "TB_RAPIDAPI_KEY": {
+      "defaultValue": { "value": "" },
+      "description": "RapidAPI key for multi-platform e-commerce search (rapidapi.com)",
+      "valueType": "STRING"
+    },
     "TB_AMAZON_API_KEY": {
       "defaultValue": { "value": "" },
       "description": "Amazon Product Advertising API key",

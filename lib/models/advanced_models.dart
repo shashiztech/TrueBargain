@@ -26,6 +26,11 @@ class ApiConfiguration {
   String blinkitApiKey;
   String zeptoApiKey;
 
+  // RapidAPI
+  String rapidApiKey;
+  bool enableRapidApi;
+  String rapidApiHost;
+
   // Flags
   bool useRealApis;
   bool enableAffiliateLinks;
@@ -55,6 +60,9 @@ class ApiConfiguration {
     this.swiggyApiKey = '',
     this.blinkitApiKey = '',
     this.zeptoApiKey = '',
+    this.rapidApiKey = '',
+    this.enableRapidApi = true,
+    this.rapidApiHost = 'real-time-product-search.p.rapidapi.com',
     this.useRealApis = false,
     this.enableAffiliateLinks = false,
     this.maxRetryAttempts = 3,
