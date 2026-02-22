@@ -114,6 +114,7 @@ void main() async {
             cacheService: cacheService,
             analyticsService: analyticsService,
             connectivityService: connectivityService,
+            priceHistoryService: priceHistoryService,
           ),
         ),
         ChangeNotifierProvider(
