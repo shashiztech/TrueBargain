@@ -1,0 +1,13 @@
+export 'api_key_provider.dart';
+export 'configuration_service.dart';
+export 'connectivity_service.dart';
+export 'cache_service.dart';
+export 'product_data_service.dart';
+export 'favorites_service.dart';
+export 'product_comparison_service.dart';
+export 'real_ecommerce_service.dart';
+export 'ecommerce_search_service.dart';
+export 'product_grouping_service.dart';
+export 'ai_recommendation_service.dart';
+export 'enhanced_comparison_service.dart';
+export 'advanced_services.dart';

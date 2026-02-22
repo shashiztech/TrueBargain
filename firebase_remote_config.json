@@ -1,0 +1,124 @@
+{
+  "parameters": {
+    "TB_AMAZON_API_KEY": {
+      "defaultValue": { "value": "" },
+      "description": "Amazon Product Advertising API key",
+      "valueType": "STRING"
+    },
+    "TB_AMAZON_ASSOC_TAG": {
+      "defaultValue": { "value": "" },
+      "description": "Amazon Associate tag for affiliate links",
+      "valueType": "STRING"
+    },
+    "TB_FLIPKART_API_KEY": {
+      "defaultValue": { "value": "" },
+      "description": "Flipkart Affiliate API key",
+      "valueType": "STRING"
+    },
+    "TB_FLIPKART_AFFIL_ID": {
+      "defaultValue": { "value": "" },
+      "description": "Flipkart Affiliate ID",
+      "valueType": "STRING"
+    },
+    "TB_WALMART_API_KEY": {
+      "defaultValue": { "value": "" },
+      "description": "Walmart API key",
+      "valueType": "STRING"
+    },
+    "TB_WALMART_AFFIL_ID": {
+      "defaultValue": { "value": "" },
+      "description": "Walmart Affiliate ID",
+      "valueType": "STRING"
+    },
+    "TB_BESTBUY_API_KEY": {
+      "defaultValue": { "value": "" },
+      "description": "Best Buy Products API key",
+      "valueType": "STRING"
+    },
+    "TB_BESTBUY_AFFIL_ID": {
+      "defaultValue": { "value": "" },
+      "description": "Best Buy Affiliate ID",
+      "valueType": "STRING"
+    },
+    "TB_TARGET_API_KEY": {
+      "defaultValue": { "value": "" },
+      "description": "Target API key",
+      "valueType": "STRING"
+    },
+    "TB_TARGET_AFFIL_ID": {
+      "defaultValue": { "value": "" },
+      "description": "Target Affiliate ID",
+      "valueType": "STRING"
+    },
+    "TB_EBAY_API_KEY": {
+      "defaultValue": { "value": "" },
+      "description": "eBay API key",
+      "valueType": "STRING"
+    },
+    "TB_MYNTRA_API_KEY": {
+      "defaultValue": { "value": "" },
+      "description": "Myntra API key",
+      "valueType": "STRING"
+    },
+    "TB_MYNTRA_AFFIL_ID": {
+      "defaultValue": { "value": "" },
+      "description": "Myntra Affiliate ID",
+      "valueType": "STRING"
+    },
+    "TB_NYKAA_API_KEY": {
+      "defaultValue": { "value": "" },
+      "description": "Nykaa API key",
+      "valueType": "STRING"
+    },
+    "TB_NYKAA_AFFIL_ID": {
+      "defaultValue": { "value": "" },
+      "description": "Nykaa Affiliate ID",
+      "valueType": "STRING"
+    },
+    "TB_MEESHO_API_KEY": {
+      "defaultValue": { "value": "" },
+      "description": "Meesho API key",
+      "valueType": "STRING"
+    },
+    "TB_CROMA_API_KEY": {
+      "defaultValue": { "value": "" },
+      "description": "Croma API key",
+      "valueType": "STRING"
+    },
+    "TB_BIGBASKET_API_KEY": {
+      "defaultValue": { "value": "" },
+      "description": "BigBasket API key",
+      "valueType": "STRING"
+    },
+    "TB_JIOMART_API_KEY": {
+      "defaultValue": { "value": "" },
+      "description": "JioMart API key",
+      "valueType": "STRING"
+    },
+    "TB_SWIGGY_API_KEY": {
+      "defaultValue": { "value": "" },
+      "description": "Swiggy Instamart API key",
+      "valueType": "STRING"
+    },
+    "TB_BLINKIT_API_KEY": {
+      "defaultValue": { "value": "" },
+      "description": "Blinkit API key",
+      "valueType": "STRING"
+    },
+    "TB_ZEPTO_API_KEY": {
+      "defaultValue": { "value": "" },
+      "description": "Zepto API key",
+      "valueType": "STRING"
+    },
+    "TB_USE_REAL_APIS": {
+      "defaultValue": { "value": "false" },
+      "description": "Toggle real API calls vs mock data",
+      "valueType": "STRING"
+    },
+    "TB_ENABLE_AFFILIATE_LINKS": {
+      "defaultValue": { "value": "false" },
+      "description": "Enable affiliate link decoration",
+      "valueType": "STRING"
+    }
+  }
+}

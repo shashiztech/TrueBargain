@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "14063960040",
+    "project_id": "truebargain-dcc83",
+    "storage_bucket": "truebargain-dcc83.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:14063960040:android:e7d82b955079386870ae5d",
+        "android_client_info": {
+          "package_name": "com.truebargain.true_bargain"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB4jUcJ3_J7iS5PrVq5r9pzAHv5A9_hY-w"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:14063960040:android:97bee2fbae62392570ae5d",
+        "android_client_info": {
+          "package_name": "shashiz.tech007"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB4jUcJ3_J7iS5PrVq5r9pzAHv5A9_hY-w"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
