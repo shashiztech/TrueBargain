@@ -95,6 +95,15 @@ class HomeProvider extends ChangeNotifier {
   Future<void> search() async {
     if (_query.trim().isEmpty) return;
 
+    // Check connectivity first
+    if (!_connectivityService.isConnected) {
+      _errorMessage = 'You are offline. Please connect to the Internet to search for products.';
+      _searchResults = [];
+      _groupedResults = [];
+      notifyListeners();
+      return;
+    }
+
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
@@ -147,9 +156,17 @@ class HomeProvider extends ChangeNotifier {
 
       _searchResults = result.products;
 
-      // Cache results
-      _memoryCache[cacheKey] = result.products;
-      await _cacheService.setCachedSearch(fileCacheKey, result.products);
+      // If no results, show helpful message
+      if (_searchResults.isEmpty) {
+        _errorMessage = 'No products found for "${_query}". '
+            'Make sure your RapidAPI key is configured in Settings → API Key Management.';
+      }
+
+      // Cache results only if non-empty
+      if (_searchResults.isNotEmpty) {
+        _memoryCache[cacheKey] = result.products;
+        await _cacheService.setCachedSearch(fileCacheKey, result.products);
+      }
 
       // Record analytics
       await _analyticsService.recordSearch(

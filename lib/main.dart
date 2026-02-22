@@ -58,6 +58,7 @@ void main() async {
   final rapidApiService =
       RapidApiService(httpClient, apiConfig, connectivityService);
   ecommerceSearchService.setRapidApiService(rapidApiService);
+  ecommerceSearchService.setConnectivityService(connectivityService);
 
   final productGroupingService = ProductGroupingService();
   final analyticsService = AnalyticsService(database);

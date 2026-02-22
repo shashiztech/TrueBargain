@@ -4,14 +4,18 @@ import '../models/models.dart';
 import 'real_ecommerce_service.dart';
 import 'product_data_service.dart';
 import 'rapid_api_service.dart';
+import 'connectivity_service.dart';
 
-/// Multi-platform search orchestration
+/// Multi-platform search orchestration — NO MOCK DATA.
+/// All results come from real APIs (RapidAPI or direct platform APIs).
+/// Returns empty result with error message if offline or no API configured.
 class EcommerceSearchService {
   final http.Client _httpClient;
   final ProductDataService _productDataService;
   final RealEcommerceService _realEcommerceService;
   final ApiConfiguration _apiConfig;
   RapidApiService? _rapidApiService;
+  ConnectivityService? _connectivityService;
 
   EcommerceSearchService(
     this._httpClient,
@@ -25,66 +29,47 @@ class EcommerceSearchService {
     _rapidApiService = service;
   }
 
-  /// Search all platforms in parallel
+  /// Attach connectivity service for offline detection
+  void setConnectivityService(ConnectivityService service) {
+    _connectivityService = service;
+  }
+
+  /// Search all platforms — REAL DATA ONLY, no mock/dummy results.
+  /// Returns empty SearchResult if offline or no API key configured.
   Future<SearchResult> searchAllPlatforms(SearchRequest request) async {
     final stopwatch = Stopwatch()..start();
-    final allProducts = <Product>[];
-    final sourceCounts = <EcommerceSource, int>{};
 
-    final futures = <Future<List<Product>>>[];
+    // Check connectivity first
+    if (_connectivityService != null && !_connectivityService!.isConnected) {
+      stopwatch.stop();
+      print('[Search] OFFLINE — cannot search');
+      return SearchResult(
+        products: [],
+        totalCount: 0,
+        query: request.query,
+        searchDuration: stopwatch.elapsed,
+        sourceCounts: {},
+      );
+    }
 
-    // If RapidAPI is available, use it for real product data
-    // and skip mock generators for platforms RapidAPI covers
     final useRapidApi =
         _rapidApiService != null && _rapidApiService!.isAvailable;
 
-    print('[Search] query="${request.query}" '
-        'useRapidApi=$useRapidApi '
+    print('[Search] query="${request.query}" useRapidApi=$useRapidApi '
         'rapidApiKey=${_apiConfig.rapidApiKey.isNotEmpty ? "SET(${_apiConfig.rapidApiKey.length}chars)" : "EMPTY"} '
         'enableRapidApi=${_apiConfig.enableRapidApi}');
 
+    final allProducts = <Product>[];
+    final sourceCounts = <EcommerceSource, int>{};
+    final futures = <Future<List<Product>>>[];
+
+    // ONLY use RapidAPI for real product data — no mock generators
     if (useRapidApi) {
-      // ── RapidAPI mode: ONLY real data, NO mock generators ──
       futures.add(_searchRapidApi(request));
     } else {
-      // ── Fallback mode: use mock generators for all platforms ──
-      if (request.source == EcommerceSource.all ||
-          request.source == EcommerceSource.amazon) {
-        futures
-            .add(_searchPlatform('Amazon', request, EcommerceSource.amazon));
-      }
-      if (request.source == EcommerceSource.all ||
-          request.source == EcommerceSource.walmart) {
-        futures.add(
-            _searchPlatform('Walmart', request, EcommerceSource.walmart));
-      }
-      if (request.source == EcommerceSource.all ||
-          request.source == EcommerceSource.bestBuy) {
-        futures.add(
-            _searchPlatform('Best Buy', request, EcommerceSource.bestBuy));
-      }
-      if (request.source == EcommerceSource.all ||
-          request.source == EcommerceSource.ebay) {
-        futures.add(_searchPlatform('eBay', request, EcommerceSource.ebay));
-      }
-      if (request.source == EcommerceSource.all ||
-          request.source == EcommerceSource.flipkart) {
-        futures.add(
-            _searchPlatform('Flipkart', request, EcommerceSource.flipkart));
-      }
-      if (request.source == EcommerceSource.all ||
-          request.source == EcommerceSource.myntra) {
-        futures
-            .add(_searchPlatform('Myntra', request, EcommerceSource.myntra));
-      }
-      if (request.source == EcommerceSource.all ||
-          request.source == EcommerceSource.croma) {
-        futures.add(_searchPlatform('Croma', request, EcommerceSource.croma));
-      }
+      print('[Search] WARNING: No RapidAPI key available. '
+          'Configure TB_RAPIDAPI_KEY in Firebase Remote Config or Settings.');
     }
-
-    // RapidAPI: real data from Google Shopping + Amazon + Walmart + eBay
-    // (already added above if useRapidApi)
 
     final results = await Future.wait(futures);
     for (final products in results) {
