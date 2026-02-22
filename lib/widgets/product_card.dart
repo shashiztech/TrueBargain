@@ -146,6 +146,22 @@ class ProductCard extends StatelessWidget {
                               constraints: const BoxConstraints(),
                             ),
                           ],
+                          const Spacer(),
+                          if (onTap != null && product.productUrl != null)
+                            SizedBox(
+                              height: 28,
+                              child: ElevatedButton.icon(
+                                onPressed: onTap,
+                                icon: const Icon(Icons.open_in_new, size: 14),
+                                label: const Text('Buy',
+                                    style: TextStyle(fontSize: 11)),
+                                style: ElevatedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8),
+                                  minimumSize: Size.zero,
+                                ),
+                              ),
+                            ),
                         ],
                       ),
                     ],

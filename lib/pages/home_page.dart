@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/home_provider.dart';
 import '../models/models.dart';
 import '../widgets/product_card.dart';
+import '../services/affiliate_link_service.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -269,6 +270,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildGroupCard(ProductGroupViewModel group) {
+    final affiliateService = context.read<AffiliateLinkService>();
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: ExpansionTile(
@@ -287,7 +289,12 @@ class _HomePageState extends State<HomePage> {
             product: variant.product,
             subtitle:
                 '₹${variant.price.toStringAsFixed(0)} on ${variant.source}',
-            onTap: () => _navigateToDetail(variant.product),
+            onTap: () => affiliateService.openProductUrl(variant.product),
+            trailing: IconButton(
+              icon: const Icon(Icons.open_in_new, size: 18),
+              onPressed: () => affiliateService.openProductUrl(variant.product),
+              tooltip: 'Open in browser',
+            ),
           );
         }).toList(),
       ),
@@ -295,11 +302,12 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildFlatView(HomeProvider provider) {
+    final affiliateService = context.read<AffiliateLinkService>();
     return GridView.builder(
       padding: const EdgeInsets.all(16),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
-        childAspectRatio: 0.65,
+        childAspectRatio: 0.55,
         crossAxisSpacing: 12,
         mainAxisSpacing: 12,
       ),
@@ -308,7 +316,9 @@ class _HomePageState extends State<HomePage> {
         final product = provider.searchResults[index];
         return ProductCard(
           product: product,
-          onTap: () => _navigateToDetail(product),
+          onTap: () => affiliateService.openProductUrl(product),
+          onFavorite: () {}, // TODO: wire favorites
+          badge: product.source,
         );
       },
     );

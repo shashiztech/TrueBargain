@@ -68,6 +68,9 @@ void main() async {
   final priceHistoryService = PriceHistoryService(database);
   final productAlertService = ProductAlertService(database);
 
+  // Affiliate link service — appends associate IDs to product URLs
+  final affiliateLinkService = AffiliateLinkService(apiConfig);
+
   runApp(
     MultiProvider(
       providers: [
@@ -95,6 +98,7 @@ void main() async {
             value: enhancedComparisonService),
         Provider<PriceHistoryService>.value(value: priceHistoryService),
         Provider<ProductAlertService>.value(value: productAlertService),
+        Provider<AffiliateLinkService>.value(value: affiliateLinkService),
 
         // Firebase Analytics
         Provider<FirebaseAnalytics>.value(
