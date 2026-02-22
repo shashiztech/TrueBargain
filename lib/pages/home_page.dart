@@ -26,7 +26,7 @@ class _HomePageState extends State<HomePage> {
       builder: (context, provider, _) {
         return Scaffold(
           appBar: AppBar(
-            title: const Text('TrueBargain'),
+            title: const Text('True Bargain'),
             actions: [
               IconButton(
                 icon: Icon(

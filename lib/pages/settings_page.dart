@@ -144,7 +144,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   children: [
                     const ListTile(
                       leading: Icon(Icons.info_outline),
-                      title: Text('TrueBargain'),
+                      title: Text('True Bargain'),
                       subtitle: Text('Version 1.0.0'),
                     ),
                     const Divider(height: 1),

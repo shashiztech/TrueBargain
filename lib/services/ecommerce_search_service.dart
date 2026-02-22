@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer' as dev;
 import 'package:http/http.dart' as http;
 import '../models/models.dart';
 import 'real_ecommerce_service.dart';
@@ -33,24 +34,47 @@ class EcommerceSearchService {
 
     final futures = <Future<List<Product>>>[];
 
-    if (request.source == EcommerceSource.all ||
-        request.source == EcommerceSource.amazon) {
-      futures.add(_searchPlatform('Amazon', request, EcommerceSource.amazon));
+    // If RapidAPI is available, use it for real product data
+    // and skip mock generators for platforms RapidAPI covers
+    final useRapidApi =
+        _rapidApiService != null && _rapidApiService!.isAvailable;
+
+    dev.log('SearchAllPlatforms: query="${request.query}" '
+        'useRapidApi=$useRapidApi '
+        'rapidApiKey=${_apiConfig.rapidApiKey.isNotEmpty ? "SET" : "EMPTY"} '
+        'enableRapidApi=${_apiConfig.enableRapidApi} '
+        'useRealApis=${_apiConfig.useRealApis}',
+        name: 'Search');
+
+    // Platforms covered by RapidAPI: Amazon, Walmart, eBay, + Google Shopping
+    // Only add mock fallback for these if RapidAPI is NOT available
+    if (!useRapidApi) {
+      if (request.source == EcommerceSource.all ||
+          request.source == EcommerceSource.amazon) {
+        futures
+            .add(_searchPlatform('Amazon', request, EcommerceSource.amazon));
+      }
+      if (request.source == EcommerceSource.all ||
+          request.source == EcommerceSource.walmart) {
+        futures.add(
+            _searchPlatform('Walmart', request, EcommerceSource.walmart));
+      }
+      if (request.source == EcommerceSource.all ||
+          request.source == EcommerceSource.bestBuy) {
+        futures.add(
+            _searchPlatform('Best Buy', request, EcommerceSource.bestBuy));
+      }
+      if (request.source == EcommerceSource.all ||
+          request.source == EcommerceSource.ebay) {
+        futures.add(_searchPlatform('eBay', request, EcommerceSource.ebay));
+      }
     }
+
+    // Indian platforms — always use mock/real service (not covered by RapidAPI)
     if (request.source == EcommerceSource.all ||
         request.source == EcommerceSource.flipkart) {
       futures.add(
           _searchPlatform('Flipkart', request, EcommerceSource.flipkart));
-    }
-    if (request.source == EcommerceSource.all ||
-        request.source == EcommerceSource.walmart) {
-      futures.add(
-          _searchPlatform('Walmart', request, EcommerceSource.walmart));
-    }
-    if (request.source == EcommerceSource.all ||
-        request.source == EcommerceSource.bestBuy) {
-      futures.add(
-          _searchPlatform('Best Buy', request, EcommerceSource.bestBuy));
     }
     if (request.source == EcommerceSource.all ||
         request.source == EcommerceSource.myntra) {
@@ -61,13 +85,9 @@ class EcommerceSearchService {
         request.source == EcommerceSource.croma) {
       futures.add(_searchPlatform('Croma', request, EcommerceSource.croma));
     }
-    if (request.source == EcommerceSource.all ||
-        request.source == EcommerceSource.ebay) {
-      futures.add(_searchPlatform('eBay', request, EcommerceSource.ebay));
-    }
 
-    // RapidAPI aggregated search (Google Shopping + real Amazon/Walmart/eBay)
-    if (_rapidApiService != null && _rapidApiService!.isAvailable) {
+    // RapidAPI: real data from Google Shopping + Amazon + Walmart + eBay
+    if (useRapidApi) {
       futures.add(_searchRapidApi(request));
     }
 

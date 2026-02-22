@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:developer' as dev;
 import 'package:http/http.dart' as http;
 import '../models/models.dart';
 import 'connectivity_service.dart';
@@ -57,10 +58,22 @@ class RapidApiService {
           .get(uri, headers: _headers('real-time-product-search.p.rapidapi.com'))
           .timeout(const Duration(seconds: 15));
 
+      dev.log('RapidAPI GoogleShopping: status=${response.statusCode} '
+          'body=${response.body.length} bytes', name: 'RapidAPI');
+
       if (response.statusCode == 200) {
-        return _parseGoogleShoppingResults(response.body);
+        final results = _parseGoogleShoppingResults(response.body);
+        dev.log('RapidAPI GoogleShopping: parsed ${results.length} products',
+            name: 'RapidAPI');
+        return results;
+      } else {
+        dev.log('RapidAPI GoogleShopping ERROR: ${response.statusCode} '
+            '${response.body.substring(0, (response.body.length > 200 ? 200 : response.body.length))}',
+            name: 'RapidAPI');
       }
-    } catch (_) {}
+    } catch (e) {
+      dev.log('RapidAPI GoogleShopping EXCEPTION: $e', name: 'RapidAPI');
+    }
     return [];
   }
 
@@ -288,7 +301,15 @@ class RapidApiService {
     String? category,
     String country = 'in',
   }) async {
-    if (!isAvailable) return [];
+    if (!isAvailable) {
+      dev.log('RapidAPI NOT available: enableRapidApi=${_apiConfig.enableRapidApi} '
+          'key=${_apiConfig.rapidApiKey.isNotEmpty ? "SET(${_apiConfig.rapidApiKey.length} chars)" : "EMPTY"}',
+          name: 'RapidAPI');
+      return [];
+    }
+
+    dev.log('RapidAPI searchAllEcommerce: query="$query" country=$country '
+        'category=$category maxResults=$maxResults', name: 'RapidAPI');
 
     final futures = <Future<List<Product>>>[
       searchGoogleShopping(query,
