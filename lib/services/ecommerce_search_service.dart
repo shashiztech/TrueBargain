@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:developer' as dev;
 import 'package:http/http.dart' as http;
 import '../models/models.dart';
 import 'real_ecommerce_service.dart';
@@ -39,16 +38,16 @@ class EcommerceSearchService {
     final useRapidApi =
         _rapidApiService != null && _rapidApiService!.isAvailable;
 
-    dev.log('SearchAllPlatforms: query="${request.query}" '
+    print('[Search] query="${request.query}" '
         'useRapidApi=$useRapidApi '
-        'rapidApiKey=${_apiConfig.rapidApiKey.isNotEmpty ? "SET" : "EMPTY"} '
-        'enableRapidApi=${_apiConfig.enableRapidApi} '
-        'useRealApis=${_apiConfig.useRealApis}',
-        name: 'Search');
+        'rapidApiKey=${_apiConfig.rapidApiKey.isNotEmpty ? "SET(${_apiConfig.rapidApiKey.length}chars)" : "EMPTY"} '
+        'enableRapidApi=${_apiConfig.enableRapidApi}');
 
-    // Platforms covered by RapidAPI: Amazon, Walmart, eBay, + Google Shopping
-    // Only add mock fallback for these if RapidAPI is NOT available
-    if (!useRapidApi) {
+    if (useRapidApi) {
+      // ── RapidAPI mode: ONLY real data, NO mock generators ──
+      futures.add(_searchRapidApi(request));
+    } else {
+      // ── Fallback mode: use mock generators for all platforms ──
       if (request.source == EcommerceSource.all ||
           request.source == EcommerceSource.amazon) {
         futures
@@ -68,28 +67,24 @@ class EcommerceSearchService {
           request.source == EcommerceSource.ebay) {
         futures.add(_searchPlatform('eBay', request, EcommerceSource.ebay));
       }
-    }
-
-    // Indian platforms — always use mock/real service (not covered by RapidAPI)
-    if (request.source == EcommerceSource.all ||
-        request.source == EcommerceSource.flipkart) {
-      futures.add(
-          _searchPlatform('Flipkart', request, EcommerceSource.flipkart));
-    }
-    if (request.source == EcommerceSource.all ||
-        request.source == EcommerceSource.myntra) {
-      futures
-          .add(_searchPlatform('Myntra', request, EcommerceSource.myntra));
-    }
-    if (request.source == EcommerceSource.all ||
-        request.source == EcommerceSource.croma) {
-      futures.add(_searchPlatform('Croma', request, EcommerceSource.croma));
+      if (request.source == EcommerceSource.all ||
+          request.source == EcommerceSource.flipkart) {
+        futures.add(
+            _searchPlatform('Flipkart', request, EcommerceSource.flipkart));
+      }
+      if (request.source == EcommerceSource.all ||
+          request.source == EcommerceSource.myntra) {
+        futures
+            .add(_searchPlatform('Myntra', request, EcommerceSource.myntra));
+      }
+      if (request.source == EcommerceSource.all ||
+          request.source == EcommerceSource.croma) {
+        futures.add(_searchPlatform('Croma', request, EcommerceSource.croma));
+      }
     }
 
     // RapidAPI: real data from Google Shopping + Amazon + Walmart + eBay
-    if (useRapidApi) {
-      futures.add(_searchRapidApi(request));
-    }
+    // (already added above if useRapidApi)
 
     final results = await Future.wait(futures);
     for (final products in results) {

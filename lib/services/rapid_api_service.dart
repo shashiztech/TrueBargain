@@ -1,18 +1,14 @@
 import 'dart:convert';
-import 'dart:developer' as dev;
 import 'package:http/http.dart' as http;
 import '../models/models.dart';
 import 'connectivity_service.dart';
 
 /// RapidAPI multi-platform e-commerce search service.
 ///
-/// Supports multiple RapidAPI endpoints for real product search:
+/// Uses a single RapidAPI key (TB_RAPIDAPI_KEY) with multiple host endpoints:
 /// - Real-Time Product Search (Google Shopping aggregation)
-/// - Amazon Product Data
-/// - Walmart Product Search
-/// - eBay Product Search
-///
-/// All requests use the single RapidAPI key with different host headers.
+/// - Real-Time Amazon Data
+/// - eBay Average Selling Price (confirmed working)
 class RapidApiService {
   final http.Client _httpClient;
   final ApiConfiguration _apiConfig;
@@ -23,7 +19,7 @@ class RapidApiService {
   bool get isAvailable =>
       _apiConfig.enableRapidApi && _apiConfig.rapidApiKey.isNotEmpty;
 
-  Map<String, String> _headers(String host) => {
+  Map<String, String> _getHeaders(String host) => {
         'X-RapidAPI-Key': _apiConfig.rapidApiKey,
         'X-RapidAPI-Host': host,
       };
@@ -31,7 +27,6 @@ class RapidApiService {
   // ──────────────────────────────────────────────
   // 1. Real-Time Product Search (Google Shopping)
   //    Host: real-time-product-search.p.rapidapi.com
-  //    Aggregates results from Google Shopping across all e-commerce platforms
   // ──────────────────────────────────────────────
   Future<List<Product>> searchGoogleShopping(
     String query, {
@@ -50,29 +45,29 @@ class RapidApiService {
           'country': country,
           'language': 'en',
           'limit': maxResults.toString(),
-          if (category != null) 'product_condition': 'NEW',
         },
       );
 
+      print('[RapidAPI] GoogleShopping GET: $uri');
+
       final response = await _httpClient
-          .get(uri, headers: _headers('real-time-product-search.p.rapidapi.com'))
+          .get(uri, headers: _getHeaders('real-time-product-search.p.rapidapi.com'))
           .timeout(const Duration(seconds: 15));
 
-      dev.log('RapidAPI GoogleShopping: status=${response.statusCode} '
-          'body=${response.body.length} bytes', name: 'RapidAPI');
+      print('[RapidAPI] GoogleShopping: status=${response.statusCode} bodyLen=${response.body.length}');
 
       if (response.statusCode == 200) {
         final results = _parseGoogleShoppingResults(response.body);
-        dev.log('RapidAPI GoogleShopping: parsed ${results.length} products',
-            name: 'RapidAPI');
+        print('[RapidAPI] GoogleShopping: parsed ${results.length} products');
         return results;
       } else {
-        dev.log('RapidAPI GoogleShopping ERROR: ${response.statusCode} '
-            '${response.body.substring(0, (response.body.length > 200 ? 200 : response.body.length))}',
-            name: 'RapidAPI');
+        final preview = response.body.length > 200
+            ? response.body.substring(0, 200)
+            : response.body;
+        print('[RapidAPI] GoogleShopping ERROR: $preview');
       }
     } catch (e) {
-      dev.log('RapidAPI GoogleShopping EXCEPTION: $e', name: 'RapidAPI');
+      print('[RapidAPI] GoogleShopping EXCEPTION: $e');
     }
     return [];
   }
@@ -84,9 +79,10 @@ class RapidApiService {
 
       return data.map<Product>((item) {
         final offer = item['offer'] ?? {};
-        final priceStr = (offer['price'] ?? item['typical_price_range']?[0] ?? '0')
-            .toString()
-            .replaceAll(RegExp(r'[^\d.]'), '');
+        final priceStr =
+            (offer['price'] ?? item['typical_price_range']?[0] ?? '0')
+                .toString()
+                .replaceAll(RegExp(r'[^\d.]'), '');
 
         return Product(
           name: item['product_title']?.toString() ?? '',
@@ -94,14 +90,17 @@ class RapidApiService {
           source: offer['store_name']?.toString() ?? 'Google Shopping',
           description: item['product_description']?.toString(),
           imageUrl: item['product_photos']?[0]?.toString(),
-          productUrl: offer['offer_page_url']?.toString() ?? item['product_page_url']?.toString(),
-          averageRating: (item['product_rating'] as num?)?.toDouble() ?? 0.0,
+          productUrl: offer['offer_page_url']?.toString() ??
+              item['product_page_url']?.toString(),
+          averageRating:
+              (item['product_rating'] as num?)?.toDouble() ?? 0.0,
           numberOfRatings: item['product_num_reviews'] as int? ?? 0,
           brand: item['brand']?.toString(),
           category: item['product_category']?.toString(),
         );
       }).where((p) => p.name.isNotEmpty && p.price > 0).toList();
-    } catch (_) {
+    } catch (e) {
+      print('[RapidAPI] GoogleShopping parse error: $e');
       return [];
     }
   }
@@ -135,18 +134,32 @@ class RapidApiService {
         params,
       );
 
+      print('[RapidAPI] Amazon GET: query="$query" country=$country');
+
       final response = await _httpClient
-          .get(uri, headers: _headers('real-time-amazon-data.p.rapidapi.com'))
+          .get(uri, headers: _getHeaders('real-time-amazon-data.p.rapidapi.com'))
           .timeout(const Duration(seconds: 15));
 
+      print('[RapidAPI] Amazon: status=${response.statusCode} bodyLen=${response.body.length}');
+
       if (response.statusCode == 200) {
-        return _parseAmazonResults(response.body, maxResults, category);
+        final results = _parseAmazonResults(response.body, maxResults, category);
+        print('[RapidAPI] Amazon: parsed ${results.length} products');
+        return results;
+      } else {
+        final preview = response.body.length > 200
+            ? response.body.substring(0, 200)
+            : response.body;
+        print('[RapidAPI] Amazon ERROR: $preview');
       }
-    } catch (_) {}
+    } catch (e) {
+      print('[RapidAPI] Amazon EXCEPTION: $e');
+    }
     return [];
   }
 
-  List<Product> _parseAmazonResults(String body, int maxResults, String? category) {
+  List<Product> _parseAmazonResults(
+      String body, int maxResults, String? category) {
     try {
       final json = jsonDecode(body);
       final products = json['data']?['products'] as List? ?? [];
@@ -166,81 +179,26 @@ class RapidApiService {
           averageRating: double.tryParse(
                   item['product_star_rating']?.toString() ?? '0') ??
               0.0,
-          numberOfRatings: int.tryParse((item['product_num_ratings'] ?? '0')
-                  .toString()
-                  .replaceAll(',', '')) ??
+          numberOfRatings: int.tryParse(
+                  (item['product_num_ratings'] ?? '0')
+                      .toString()
+                      .replaceAll(',', '')) ??
               0,
           brand: item['brand']?.toString(),
           category: category,
           sku: item['asin']?.toString(),
         );
       }).where((p) => p.name.isNotEmpty).toList();
-    } catch (_) {
+    } catch (e) {
+      print('[RapidAPI] Amazon parse error: $e');
       return [];
     }
   }
 
   // ──────────────────────────────────────────────
-  // 3. Walmart Product Search
-  //    Host: walmart2.p.rapidapi.com
-  // ──────────────────────────────────────────────
-  Future<List<Product>> searchWalmart(
-    String query, {
-    int maxResults = 20,
-  }) async {
-    if (!isAvailable || !_connectivity.isConnected) return [];
-
-    try {
-      final uri = Uri.https(
-        'walmart2.p.rapidapi.com',
-        '/searchV2',
-        {
-          'query': query,
-          'page': '1',
-          'sort': 'best_match',
-        },
-      );
-
-      final response = await _httpClient
-          .get(uri, headers: _headers('walmart2.p.rapidapi.com'))
-          .timeout(const Duration(seconds: 15));
-
-      if (response.statusCode == 200) {
-        return _parseWalmartResults(response.body, maxResults);
-      }
-    } catch (_) {}
-    return [];
-  }
-
-  List<Product> _parseWalmartResults(String body, int maxResults) {
-    try {
-      final json = jsonDecode(body);
-      final items = json['responseData']?['results'] as List? ?? [];
-
-      return items.take(maxResults).map<Product>((item) {
-        return Product(
-          name: item['title']?.toString() ?? '',
-          price: (item['price'] as num?)?.toDouble() ?? 0.0,
-          source: 'Walmart',
-          description: item['shortDescription']?.toString(),
-          imageUrl: item['image']?.toString(),
-          productUrl: item['canonicalUrl'] != null
-              ? 'https://www.walmart.com${item['canonicalUrl']}'
-              : null,
-          averageRating: (item['rating'] as num?)?.toDouble() ?? 0.0,
-          numberOfRatings: item['numReviews'] as int? ?? 0,
-          brand: item['brand']?.toString(),
-          category: item['category']?.toString(),
-        );
-      }).where((p) => p.name.isNotEmpty).toList();
-    } catch (_) {
-      return [];
-    }
-  }
-
-  // ──────────────────────────────────────────────
-  // 4. eBay Product Search
-  //    Host: ebay-search-result.p.rapidapi.com
+  // 3. eBay Average Selling Price (CONFIRMED WORKING)
+  //    Host: ebay-average-selling-price.p.rapidapi.com
+  //    POST /findCompletedItems
   // ──────────────────────────────────────────────
   Future<List<Product>> searchEbay(
     String query, {
@@ -250,50 +208,80 @@ class RapidApiService {
 
     try {
       final uri = Uri.https(
-        'ebay-search-result.p.rapidapi.com',
-        '/search/$query',
-        {'page': '1'},
+        'ebay-average-selling-price.p.rapidapi.com',
+        '/findCompletedItems',
       );
 
+      final requestBody = jsonEncode({
+        'keywords': query,
+        'max_search_results': maxResults.toString(),
+        'remove_outliers': 'true',
+        'site_id': '0',
+      });
+
+      final headers = {
+        ..._getHeaders('ebay-average-selling-price.p.rapidapi.com'),
+        'Content-Type': 'application/json',
+      };
+
+      print('[RapidAPI] eBay POST: query="$query"');
+
       final response = await _httpClient
-          .get(uri, headers: _headers('ebay-search-result.p.rapidapi.com'))
+          .post(uri, headers: headers, body: requestBody)
           .timeout(const Duration(seconds: 15));
 
+      print('[RapidAPI] eBay: status=${response.statusCode} bodyLen=${response.body.length}');
+
       if (response.statusCode == 200) {
-        return _parseEbayResults(response.body, maxResults);
+        final results = _parseEbayResults(response.body, maxResults);
+        print('[RapidAPI] eBay: parsed ${results.length} products');
+        return results;
+      } else {
+        final preview = response.body.length > 200
+            ? response.body.substring(0, 200)
+            : response.body;
+        print('[RapidAPI] eBay ERROR: $preview');
       }
-    } catch (_) {}
+    } catch (e) {
+      print('[RapidAPI] eBay EXCEPTION: $e');
+    }
     return [];
   }
 
   List<Product> _parseEbayResults(String body, int maxResults) {
     try {
       final json = jsonDecode(body);
-      final results = json['results'] as List? ?? [];
 
-      return results.take(maxResults).map<Product>((item) {
-        final priceStr = (item['price'] ?? '0')
-            .toString()
-            .replaceAll(RegExp(r'[^\d.]'), '');
+      final avgPrice =
+          (json['average_price'] as num?)?.toDouble() ?? 0.0;
+      final medianPrice =
+          (json['median_price'] as num?)?.toDouble() ?? 0.0;
+      final products = json['products'] as List? ?? [];
 
+      print('[RapidAPI] eBay parsed: ${products.length} products, '
+          'avg=\$${avgPrice.toStringAsFixed(2)}, '
+          'median=\$${medianPrice.toStringAsFixed(2)}');
+
+      return products.take(maxResults).map<Product>((item) {
         return Product(
           name: item['title']?.toString() ?? '',
-          price: double.tryParse(priceStr) ?? 0.0,
+          price: (item['price'] as num?)?.toDouble() ?? avgPrice,
           source: 'eBay',
-          imageUrl: item['image']?.toString(),
+          imageUrl: item['image_url']?.toString(),
           productUrl: item['url']?.toString(),
           averageRating: 0.0,
           numberOfRatings: 0,
+          category: item['category']?.toString(),
         );
       }).where((p) => p.name.isNotEmpty).toList();
-    } catch (_) {
+    } catch (e) {
+      print('[RapidAPI] eBay parse error: $e');
       return [];
     }
   }
 
   // ──────────────────────────────────────────────
-  // 5. Search ALL e-commerce via RapidAPI
-  //    Aggregates Google Shopping + Amazon + Walmart + eBay
+  // Master search — aggregates all endpoints
   // ──────────────────────────────────────────────
   Future<List<Product>> searchAllEcommerce(
     String query, {
@@ -302,24 +290,24 @@ class RapidApiService {
     String country = 'in',
   }) async {
     if (!isAvailable) {
-      dev.log('RapidAPI NOT available: enableRapidApi=${_apiConfig.enableRapidApi} '
-          'key=${_apiConfig.rapidApiKey.isNotEmpty ? "SET(${_apiConfig.rapidApiKey.length} chars)" : "EMPTY"}',
-          name: 'RapidAPI');
+      print('[RapidAPI] NOT available: '
+          'enableRapidApi=${_apiConfig.enableRapidApi} '
+          'keySet=${_apiConfig.rapidApiKey.isNotEmpty}');
       return [];
     }
 
-    dev.log('RapidAPI searchAllEcommerce: query="$query" country=$country '
-        'category=$category maxResults=$maxResults', name: 'RapidAPI');
+    print('[RapidAPI] === searchAllEcommerce START === '
+        'query="$query" country=$country '
+        'keyPrefix=${_apiConfig.rapidApiKey.length > 8 ? _apiConfig.rapidApiKey.substring(0, 8) : "short"}...');
 
     final futures = <Future<List<Product>>>[
       searchGoogleShopping(query,
-          maxResults: maxResults ~/ 4, country: country, category: category),
+          maxResults: maxResults ~/ 3, country: country, category: category),
       searchAmazon(query,
-          maxResults: maxResults ~/ 4,
+          maxResults: maxResults ~/ 3,
           country: country.toUpperCase(),
           category: category),
-      searchWalmart(query, maxResults: maxResults ~/ 4),
-      searchEbay(query, maxResults: maxResults ~/ 4),
+      searchEbay(query, maxResults: maxResults ~/ 3),
     ];
 
     final results = await Future.wait(futures);
@@ -328,30 +316,25 @@ class RapidApiService {
       allProducts.addAll(list);
     }
 
-    // Deduplicate by name similarity
+    print('[RapidAPI] Total raw results: ${allProducts.length}');
+
+    // Deduplicate by name prefix
     final seen = <String>{};
     final deduped = <Product>[];
     for (final p in allProducts) {
       final key = p.name.toLowerCase().replaceAll(RegExp(r'\s+'), '');
-      if (key.length > 10) {
-        final shortKey = key.substring(0, 10);
-        if (!seen.contains(shortKey)) {
-          seen.add(shortKey);
-          deduped.add(p);
-        }
-      } else {
-        if (!seen.contains(key)) {
-          seen.add(key);
-          deduped.add(p);
-        }
+      final lookupKey = key.length > 10 ? key.substring(0, 10) : key;
+      if (!seen.contains(lookupKey)) {
+        seen.add(lookupKey);
+        deduped.add(p);
       }
     }
 
+    print('[RapidAPI] === searchAllEcommerce END === ${deduped.length} unique products');
     return deduped.take(maxResults).toList();
   }
 
-  // ──── Category Mapping ────
-  /// E-commerce category IDs for Amazon search
+  // ──── Helpers ────
   static final _amazonCategories = <String, String>{
     'Electronics': 'aps',
     'Smartphones': 'mobile',
@@ -383,39 +366,14 @@ class RapidApiService {
     'Video Games': 'videogames',
   };
 
-  String _mapAmazonCategory(String category) {
-    return _amazonCategories[category] ?? 'aps';
-  }
+  String _mapAmazonCategory(String category) =>
+      _amazonCategories[category] ?? 'aps';
 
-  /// All supported e-commerce categories for browsing
   static const supportedCategories = [
-    'Electronics',
-    'Smartphones',
-    'Laptops',
-    'Television',
-    'Audio',
-    'Cameras',
-    'Tablets',
-    'Fashion',
-    'Beauty',
-    'Grocery',
-    'Home',
-    'Books',
-    'Toys',
-    'Sports',
-    'Automotive',
-    'Health',
-    'Baby',
-    'Pet Supplies',
-    'Office',
-    'Tools',
-    'Garden',
-    'Jewelry',
-    'Watches',
-    'Shoes',
-    'Luggage',
-    'Musical Instruments',
-    'Software',
-    'Video Games',
+    'Electronics', 'Smartphones', 'Laptops', 'Television', 'Audio',
+    'Cameras', 'Tablets', 'Fashion', 'Beauty', 'Grocery', 'Home',
+    'Books', 'Toys', 'Sports', 'Automotive', 'Health', 'Baby',
+    'Pet Supplies', 'Office', 'Tools', 'Garden', 'Jewelry', 'Watches',
+    'Shoes', 'Luggage', 'Musical Instruments', 'Software', 'Video Games',
   ];
 }

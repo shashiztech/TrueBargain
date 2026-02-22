@@ -44,22 +44,35 @@ class ApiKeyProvider {
       final remoteConfig = FirebaseRemoteConfig.instance;
       await remoteConfig.setConfigSettings(RemoteConfigSettings(
         fetchTimeout: const Duration(seconds: 10),
-        minimumFetchInterval: const Duration(hours: 1),
+        minimumFetchInterval: Duration.zero, // Always fetch latest on startup
       ));
-      await remoteConfig.fetchAndActivate();
+      
+      final activated = await remoteConfig.fetchAndActivate();
+      print('[ApiKeyProvider] Firebase Remote Config fetched. activated=$activated');
 
+      int keysLoaded = 0;
       for (final entry in _keyMap.entries) {
         final remoteValue = remoteConfig.getString(entry.key);
         if (remoteValue.isNotEmpty) {
           _setConfigValue(config, entry.value, remoteValue);
+          keysLoaded++;
+          if (entry.key == 'TB_RAPIDAPI_KEY') {
+            print('[ApiKeyProvider] TB_RAPIDAPI_KEY loaded from Remote Config (${remoteValue.length} chars)');
+          }
           continue;
         }
         // Fallback to SecureStorage
         final secureValue = await _secureStorage.read(key: entry.key);
         if (secureValue != null && secureValue.isNotEmpty) {
           _setConfigValue(config, entry.value, secureValue);
+          keysLoaded++;
+          if (entry.key == 'TB_RAPIDAPI_KEY') {
+            print('[ApiKeyProvider] TB_RAPIDAPI_KEY loaded from SecureStorage (${secureValue.length} chars)');
+          }
         }
       }
+
+      print('[ApiKeyProvider] Loaded $keysLoaded keys from Remote Config + SecureStorage');
 
       // Feature flags from Remote Config
       final useReal = remoteConfig.getString('TB_USE_REAL_APIS');
@@ -70,7 +83,12 @@ class ApiKeyProvider {
       if (enableAffil.isNotEmpty) {
         config.enableAffiliateLinks = enableAffil.toLowerCase() == 'true';
       }
-    } catch (_) {
+      
+      print('[ApiKeyProvider] useRealApis=${config.useRealApis} '
+          'enableRapidApi=${config.enableRapidApi} '
+          'rapidApiKey=${config.rapidApiKey.isNotEmpty ? "SET(${config.rapidApiKey.length}chars)" : "EMPTY"}');
+    } catch (e) {
+      print('[ApiKeyProvider] Firebase Remote Config FAILED: $e');
       // Firebase not available — fall back to SecureStorage only
       for (final entry in _keyMap.entries) {
         try {
